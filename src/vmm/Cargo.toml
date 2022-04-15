@@ -1,0 +1,12 @@
+[package]
+name = "shuairan"
+version = "0.0.1"
+edition = "2021"
+authors = ["Garry Xu <garry.x@outlook.com>"]
+description = "A lightweight hypervisor aiming to run Linux or Windows virtual machines with minimal cost"
+license = "Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+utils = { path = "../utils" }

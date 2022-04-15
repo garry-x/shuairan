@@ -1,0 +1,12 @@
+[package]
+name = "utils"
+version = "0.0.1"
+edition = "2021"
+authors = ["Garry Xu <garry.x@outlook.com>"]
+description = "Utils used to implement the ShuaiRan hypervisor."
+license = "Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nom = "7.1.1"

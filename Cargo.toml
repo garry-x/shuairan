@@ -1,0 +1,3 @@
+[workspace]
+members = ["src/vmm", "src/utils"]
+default-members = ["src/vmm", "src/utils"]
