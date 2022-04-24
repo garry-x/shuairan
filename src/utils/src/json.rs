@@ -97,11 +97,20 @@ impl fmt::Display for ErrorKind {
             ),
             InvalidBoolean => write!(
                 f,
-                "The given input can't be parsed into a valid true/false value."
+                "The given input can't be parsed into a valid boolean value."
             ),
-            InvalidNumber => write!(f, "The given input can't be parsed into a valid number"),
-            InvalidString => write!(f, "The given input can't be parsed into a valid string"),
-            InvalidArray => write!(f, "The given input can't be parsed into a valid JSON array"),
+            InvalidNumber => write!(
+                f, 
+                "The given input can't be parsed into a valid number"
+            ),
+            InvalidString => write!(
+                f, 
+                "The given input can't be parsed into a valid string"
+            ),
+            InvalidArray => write!(
+                f, 
+                "The given input can't be parsed into a valid JSON array"
+            ),
             InvalidObject => write!(
                 f,
                 "The given input can't be parsed into a valid JSON object"
@@ -230,7 +239,9 @@ impl Json {
             delimited(
                 tag("\""),
                 escaped(
-                    take_till1(|c: char| c == '\\' || c == '\"' || c.is_ascii_control()),
+                    take_till1(
+                        |c: char| c == '\\' || c == '\"' || c.is_ascii_control()
+                    ),
                     '\\',
                     one_of(r#""\/bfnrtu"#),
                 ),
@@ -245,7 +256,10 @@ impl Json {
         map_err!(
             delimited(
                 tag("["),
-                separated_list0(tag(","), delimited(multispace0, Self::value, multispace0)),
+                separated_list0(
+                    tag(","), 
+                    delimited(multispace0, Self::value, multispace0)
+                ),
                 tag("]"),
             )(s)
             .map(|(s, v)| (s, Json::Array(v))),
@@ -409,6 +423,7 @@ pub fn test_object() {
 pub fn test_from_file() {
     macro_rules! hashmap {
         ( $( $key: expr => $val: expr ),* ) => {{
+             #[allow(unused_mut)]
              let mut map: HashMap<String, Json> = HashMap::new();
              $( map.insert($key, $val); )*
              map
