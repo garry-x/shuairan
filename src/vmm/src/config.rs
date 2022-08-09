@@ -1,17 +1,5 @@
-//
 // Copyright 2022 Garry Xu
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 use std::fmt;
 use utils::json;
@@ -78,19 +66,19 @@ macro_rules! required {
 
 /// CPU configurations for a virtual machine.
 #[derive(Debug, PartialEq)]
-pub struct CPUConfig {
+pub struct CpuConfig {
     /// The number of vcpus.
     pub count: u32,
 }
 
-impl CPUConfig {
-    /// Construct CPUConfig from a JSON object.
+impl CpuConfig {
+    /// Construct CpuConfig from a JSON object.
     fn from(mut json: Json) -> Result<Self> {
         let count = required!(json, take_number, "cpu", "count") as u32;
         if count == 0 || count > MAX_VCPU_DEFAULT {
             return Err(Error::IllegalConfig("cpu.count".to_string()));
         }
-        Ok(CPUConfig { count })
+        Ok(CpuConfig { count })
     }
 }
 
@@ -138,7 +126,7 @@ impl DeviceConfig {
 
 /// Configurations related to the operating system.
 #[derive(Debug, PartialEq)]
-pub struct OSConfig {
+pub struct OsConfig {
     /// Path to the kernel bzImage.
     pub kernel: Option<String>,
     /// Path to the kernel initrd.
@@ -149,10 +137,10 @@ pub struct OSConfig {
     pub cmdline: Option<String>,
 }
 
-impl OSConfig {
-    /// Construct OSConfig from a JSON object.
+impl OsConfig {
+    /// Construct OsConfig from a JSON object.
     fn from(mut json: Json) -> Result<Self> {
-        Ok(OSConfig{
+        Ok(OsConfig{
             kernel: json.take_string("kernel"),
             initrd: json.take_string("initrd"),
             rootfs: json.take_string("rootfs"),
@@ -163,37 +151,37 @@ impl OSConfig {
 
 /// Configurations related to the hypervisor.
 #[derive(Debug, PartialEq)]
-pub struct VMMConfig {}
+pub struct VmmConfig {}
 
 /// Overall configurations for a virtual machine.
 #[derive(Debug, PartialEq)]
-pub struct VMConfig {
+pub struct VmConfig {
     /// CPU configurations for a VM.
-    pub cpu: CPUConfig,
+    pub cpu: CpuConfig,
     /// Memory configurations for a VM.
     pub memory: MemoryConfig,
     /// Device configurations for a VM.
     pub device: Vec<DeviceConfig>,
     /// OS configurations for a VM
-    pub os: OSConfig,
+    pub os: OsConfig,
     /// Hypervisor configurations
-    pub vmm: VMMConfig
+    pub vmm: VmmConfig
 }
 
-impl VMConfig {
+impl VmConfig {
     /// Construct VmConfig form a JSON object.
     pub fn from(mut json: Json) -> Result<Self> {
-        let cpu = CPUConfig::from(required!(json, take_object, "", "cpu"))?;
+        let cpu = CpuConfig::from(required!(json, take_object, "", "cpu"))?;
         let memory = MemoryConfig::from(required!(json, take_object, "", "memory"))?;
         let mut device = Vec::new();
         for dev in required!(json, take_array, "", "device") {
             device.push(DeviceConfig::from(dev)?);
         }
-        let os = OSConfig::from(required!(json, take_object, "", "os"))?;
-        let vmm = VMMConfig {};
-        Ok(VMConfig { cpu, memory, device, os, vmm }) 
+        let os = OsConfig::from(required!(json, take_object, "", "os"))?;
+        let vmm = VmmConfig {};
+        Ok(VmConfig { cpu, memory, device, os, vmm }) 
     }
-    /// Construct VMConfig from loading a config file
+    /// Construct VmConfig from loading a config file
     pub fn from_file(path: &str) -> Result<Self> {
         Self::from(Json::from_file(path)?)
     }
@@ -202,15 +190,15 @@ impl VMConfig {
 #[test]
 fn test_cpuconfig() {
     assert_eq!(
-        CPUConfig::from(Json::from_str(r#"{ "count": 4 }"#).unwrap()),
-        Ok(CPUConfig { count: 4 })
+        CpuConfig::from(Json::from_str(r#"{ "count": 4 }"#).unwrap()),
+        Ok(CpuConfig { count: 4 })
     );
     assert_eq!(
-        CPUConfig::from(Json::from_str("{}").unwrap()), 
+        CpuConfig::from(Json::from_str("{}").unwrap()), 
         Err(Error::MissingConfig("cpu.count".to_string()))
     );
     assert_eq!(
-        CPUConfig::from(Json::from_str(r#"{ "count": 2048 }"#).unwrap()), 
+        CpuConfig::from(Json::from_str(r#"{ "count": 2048 }"#).unwrap()), 
         Err(Error::IllegalConfig("cpu.count".to_string()))
     );
 }
@@ -266,14 +254,14 @@ fn test_devconfig() {
 #[test]
 fn test_osconfig() {
     assert_eq!(
-        OSConfig::from(Json::from_str(
+        OsConfig::from(Json::from_str(
             concat!(
                 r#"{ "kernel":"/xx/vmlinuz", "initrd":"/xx/initrd.img","#,
                 r#""rootfs":"/xx/xxx.raw", "#,
                 r#""cmdline":"console=ttyS0 reboot=k panic=1 pci=off" }"#
             ),
         ).unwrap()),
-        Ok(OSConfig {
+        Ok(OsConfig {
             kernel: Some("/xx/vmlinuz".to_string()),
             initrd: Some("/xx/initrd.img".to_string()),
             rootfs: Some("/xx/xxx.raw".to_string()),
@@ -282,8 +270,8 @@ fn test_osconfig() {
 
     );
     assert_eq!(
-        OSConfig::from(Json::from_str("{}").unwrap()),
-        Ok(OSConfig {
+        OsConfig::from(Json::from_str("{}").unwrap()),
+        Ok(OsConfig {
             kernel: None, 
             initrd: None, 
             rootfs: None, 
@@ -295,7 +283,7 @@ fn test_osconfig() {
 #[test]
 fn test_vmconfig() {
     assert_eq!(
-        VMConfig::from(Json::from_str(
+        VmConfig::from(Json::from_str(
             concat!(
                 r#"{"cpu":{"count":4},"memory":{"size_mib":1024},"#,
                 r#""device":[{"driver":"virtio-blk","source":"/xxx/disk.raw"}],"#,
@@ -303,8 +291,8 @@ fn test_vmconfig() {
                 r#""cmdline":"console=ttyS0 pci=off"}}"#
             )
         ).unwrap()),
-        Ok(VMConfig {
-            cpu: CPUConfig { count: 4 },
+        Ok(VmConfig {
+            cpu: CpuConfig { count: 4 },
             memory: MemoryConfig { size_mib: 1024 },
             device: vec![
                 DeviceConfig {
@@ -312,13 +300,13 @@ fn test_vmconfig() {
                     source: Some("/xxx/disk.raw".to_string())
                 }
             ],            
-            os: OSConfig {
+            os: OsConfig {
                 kernel: Some("/xx/vmlinuz".to_string()),
                 initrd: None,
                 rootfs: None,
                 cmdline: Some("console=ttyS0 pci=off".to_string())
             },
-            vmm: VMMConfig {}
+            vmm: VmmConfig {}
         })
     )
 }

@@ -13,7 +13,12 @@ Traditional bare-metal servers have following drawbacks:
 
 To address the above issues, we put a lightweight hypervisor (ShuaiRan) between the user operating system and the underlying physical devices. The designing goals of shuairan are listed as follows:  
 - Performance of the VM is comparable with the original physical server.   
-- The resource costs of ShuaiRan hypervisor is unnoticeable.  
-- Elastic Block Storage is suported with the help of DPUs or Smartnics.   
-- Live migration is supported.  
+reuqired- The resource costs of ShuaiRan hypervisor is unnoticeable.  
+- Elastic Block Storage is supported with the help of DPUs or Smartnics.   
+- Live migration is supported.   
+
+### Roadmap
+- **Prototyping Stage:**   A prototyping hypervisor is implemented, which can boot a typical linux image.  
+- **Functioning Stage:**  The required functions are implemented. Bare-metal machines can directly boot into this hypervisor.
+- **Fulfillment Stage:**   Fulfill all the design goals listed above. 
 
