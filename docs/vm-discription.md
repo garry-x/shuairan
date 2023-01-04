@@ -5,7 +5,7 @@ A virtual machine is the abstraction for a real physical machine. Its descriptio
 - Memory Configrations  
 - Devices Configratons  
 - Operating System Related Configrations  
-- Hyervisor Related configuratons  
+- Hyervisor Related Configuratons      
 
 The discription for a VM is implemented through a JSON file. Here is a example:  
 ```

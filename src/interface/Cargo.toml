@@ -3,10 +3,8 @@ name = "shuairan"
 version = "0.1.0"
 edition = "2021"
 authors = ["Garry Xu <garry.x@outlook.com>"]
-description = "Binary of the hypervisor that glues together everything."
+description = "ShuaiRan is a lightweight hypervisor designed for bare-metal servers."
 license = "Apache-2.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 vmm = { path = "../vmm" }

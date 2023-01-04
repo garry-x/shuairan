@@ -22,12 +22,12 @@ fn usage() {
 
 /// The entry point function for the hypervisor.  
 /// 
-/// A VM will be booted according to the given configuration file. 
+/// VM will be booted according to the given configuration file. 
 /// 
 /// # Arguments
-/// * 'path': Path to a VM's configuration file.
+/// * `path`: Path to a VM's configuration file.
 fn vmm_entry(path: &str) -> ExitCode {
-    // Convert JSON config to VMConfig 
+    // Convert JSON config to VmConfig 
     match VmConfig::from_file(path) {
         Ok(config) => {
             println!("{:?}", config);

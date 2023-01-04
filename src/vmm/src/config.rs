@@ -1,59 +1,14 @@
 // Copyright 2022 Garry Xu
 // SPDX-License-Identifier: Apache-2.0
 
-use std::fmt;
-use utils::json;
 use utils::json::Json;
 #[allow(unused_imports)]
 use std::str::FromStr;
+use super::error::{Result, Error};
 
-const MAX_VCPU_DEFAULT: u32 = 512;
-
-type Result<T> = std::result::Result<T, Error>;
-
-/// Errors generated during parsing and validating VM configurations.
-#[derive(Debug, PartialEq)]
-pub enum Error {
-    /// The required configuration is missing.
-    MissingConfig(String),
-    /// The configuration provided is illegal.
-    IllegalConfig(String),
-    /// Errors generated when paring configurations from JSON strings.
-    ParsingError(String),
-    /// Errors generated when doing file operations.
-    IOError(String),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Error::*;
-
-        match self {
-            MissingConfig(s) => write!(
-                f, 
-                "The required configuration for {} is missing.", 
-                s
-            ),
-            IllegalConfig(s) => write!(
-                f, 
-                "The given configuration for {} is illegal.", 
-                s
-            ),
-            ParsingError(s) => write!(f, "{}", s),
-            IOError(s) => write!(f, "{}", s),
-        }
-    }
-}
-
-impl From<json::Error> for Error {
-    // Convert a json::Error to config::Error
-    fn from(e: json::Error) -> Self {
-        match e {
-            json::Error::ParsingError(_) => Error::ParsingError(e.to_string()),
-            json::Error::IOError(s) => Error::IOError(s),
-        }
-    }
-}
+// When kernel is configured with MAXSMP on, 8192 cpus are allowed.
+// So we use this value.
+const MAX_VCPU_DEFAULT: u32 = 8192;
 
 macro_rules! required {
     ($object:ident, $func:ident, $prefix:expr, $str:expr) => {
@@ -61,11 +16,11 @@ macro_rules! required {
             Some(value) => Ok(value),
             None => Err(Error::MissingConfig(format!("{}.{}", $prefix, $str))),
         }?
-    };
+    }
 }
 
 /// CPU configurations for a virtual machine.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CpuConfig {
     /// The number of vcpus.
     pub count: u32,
@@ -83,7 +38,7 @@ impl CpuConfig {
 }
 
 /// Memory configurations for a virtual machine.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct MemoryConfig {
     /// The total size of VM's memory in MB.
     pub size_mib: u32,
@@ -106,7 +61,7 @@ impl MemoryConfig {
 }
 
 /// Configurations of a virtual device for a VM.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct DeviceConfig {
     /// The driver related to this device.
     pub driver: String,
@@ -125,7 +80,7 @@ impl DeviceConfig {
 }
 
 /// Configurations related to the operating system.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct OsConfig {
     /// Path to the kernel bzImage.
     pub kernel: Option<String>,
@@ -150,11 +105,11 @@ impl OsConfig {
 }
 
 /// Configurations related to the hypervisor.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct VmmConfig {}
 
 /// Overall configurations for a virtual machine.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct VmConfig {
     /// CPU configurations for a VM.
     pub cpu: CpuConfig,
@@ -162,24 +117,28 @@ pub struct VmConfig {
     pub memory: MemoryConfig,
     /// Device configurations for a VM.
     pub device: Vec<DeviceConfig>,
-    /// OS configurations for a VM
+    /// OS configurations for a VM.
     pub os: OsConfig,
-    /// Hypervisor configurations
-    pub vmm: VmmConfig
+    /// Optional VMM configurations for a VM.
+    pub vmm: Option<VmmConfig>
 }
 
 impl VmConfig {
     /// Construct VmConfig form a JSON object.
     pub fn from(mut json: Json) -> Result<Self> {
-        let cpu = CpuConfig::from(required!(json, take_object, "", "cpu"))?;
-        let memory = MemoryConfig::from(required!(json, take_object, "", "memory"))?;
-        let mut device = Vec::new();
-        for dev in required!(json, take_array, "", "device") {
-            device.push(DeviceConfig::from(dev)?);
-        }
-        let os = OsConfig::from(required!(json, take_object, "", "os"))?;
-        let vmm = VmmConfig {};
-        Ok(VmConfig { cpu, memory, device, os, vmm }) 
+        Ok(VmConfig { 
+            cpu: CpuConfig::from(required!(json, take_object, "", "cpu"))?, 
+            memory: MemoryConfig::from(required!(json, take_object, "", "memory"))?, 
+            device: {
+                let mut device = Vec::new();
+                for dev in required!(json, take_array, "", "device") {
+                    device.push(DeviceConfig::from(dev)?);
+                }
+                device
+            }, 
+            os: OsConfig::from(required!(json, take_object, "", "os"))?,
+            vmm: None,
+        }) 
     }
     /// Construct VmConfig from loading a config file
     pub fn from_file(path: &str) -> Result<Self> {
@@ -188,7 +147,7 @@ impl VmConfig {
 }
 
 #[test]
-fn test_cpuconfig() {
+fn test_cpu_config() {
     assert_eq!(
         CpuConfig::from(Json::from_str(r#"{ "count": 4 }"#).unwrap()),
         Ok(CpuConfig { count: 4 })
@@ -252,7 +211,7 @@ fn test_devconfig() {
 }
 
 #[test]
-fn test_osconfig() {
+fn test_os_config() {
     assert_eq!(
         OsConfig::from(Json::from_str(
             concat!(
@@ -281,7 +240,7 @@ fn test_osconfig() {
 }
 
 #[test]
-fn test_vmconfig() {
+fn test_vm_config() {
     assert_eq!(
         VmConfig::from(Json::from_str(
             concat!(
@@ -306,7 +265,7 @@ fn test_vmconfig() {
                 rootfs: None,
                 cmdline: Some("console=ttyS0 pci=off".to_string())
             },
-            vmm: VmmConfig {}
+            vmm: None
         })
     )
 }
