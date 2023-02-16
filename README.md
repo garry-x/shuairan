@@ -1,7 +1,7 @@
 # ShuaiRan (率然)
 
 ShuaiRan (率然) is a lightweight hypervisor designed for bare-metal servers.  
-![](https://www.garryx.com/images/shuairan.png)
+![](/docs/images/shuairan.png)
 
 
 ### Background  
