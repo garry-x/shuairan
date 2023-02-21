@@ -32,7 +32,12 @@ The discription for a VM is implemented through a JSON file. Here is a example:
         "rootfs": "/tmp/test-vm/bionic.rootfs.ext4", 
         "cmdline": "console=ttyS0 reboot=k panic=1 pci=off"
     },
-    "vmm": {}
+    "vmm": {
+        "log": {
+            "level": "Info",
+            "path": "/var/log/shuairan.log"
+        }
+    }
 }
 ```
 

@@ -1,7 +1,7 @@
 // Copyright 2022 Garry Xu
 // SPDX-License-Identifier: Apache-2.0
 
-use utils::json::Json;
+use utils::{json::Json, log::LogLevel};
 #[allow(unused_imports)]
 use std::str::FromStr;
 use super::error::{Result, Error};
@@ -31,7 +31,7 @@ impl CpuConfig {
     fn from(mut json: Json) -> Result<Self> {
         let count = required!(json, take_number, "cpu", "count") as u32;
         if count == 0 || count > MAX_VCPU_DEFAULT {
-            return Err(Error::IllegalConfig("cpu.count".to_string()));
+            return Err(Error::IllegalConfig(format!("cpu.count={}", count)));
         }
         Ok(CpuConfig { count })
     }
@@ -104,9 +104,56 @@ impl OsConfig {
     }
 }
 
+/// Configurations related to the logger.
+#[derive(Debug, PartialEq, Clone)]
+pub struct LogConfig {
+    /// `LogLevel` for the logger.
+    pub level: Option<LogLevel>,
+    /// File path for the file logger.
+    pub path: Option<String>
+}
+
+impl LogConfig {
+    /// Construct LogConfig from a JSON object.
+    pub fn from(mut json: Json) -> Result<Self> {
+        Ok(
+            LogConfig {
+                level: json.take_string("level").map(
+                    |l| match &l[..] {
+                        "Debug" | "debug" => LogLevel::Debug,
+                        "Info" | "info" => LogLevel::Info,
+                        "Warn" | "warn" => LogLevel::Warn,
+                        "Error" | "error" => LogLevel::Error,
+                        // Unrecognized config will be amended to `Debug` level.
+                        _ => LogLevel::Debug
+                    }
+                ),
+                path: json.take_string("path")
+            }
+        )
+    }
+}
+
 /// Configurations related to the hypervisor.
 #[derive(Debug, PartialEq, Clone)]
-pub struct VmmConfig {}
+pub struct VmmConfig {
+    /// Configurations for the logger.
+    pub log: Option<LogConfig> 
+}
+
+impl VmmConfig {
+    /// Construct VmmConfig from a JSON object.
+    pub fn from(mut json: Json) -> Result<Self> {
+        Ok(
+            VmmConfig {
+                log: match json.take_object("log") {
+                    Some(obj) => Some(LogConfig::from(obj)?),
+                    _ => None
+                }
+            }
+        )
+    }
+}
 
 /// Overall configurations for a virtual machine.
 #[derive(Debug, PartialEq, Clone)]
@@ -137,7 +184,10 @@ impl VmConfig {
                 device
             }, 
             os: OsConfig::from(required!(json, take_object, "", "os"))?,
-            vmm: None,
+            vmm: match json.take_object("vmm") {
+                Some(obj) => Some(VmmConfig::from(obj)?),
+                _ => None
+            }
         }) 
     }
     /// Construct VmConfig from loading a config file
@@ -157,8 +207,8 @@ fn test_cpu_config() {
         Err(Error::MissingConfig("cpu.count".to_string()))
     );
     assert_eq!(
-        CpuConfig::from(Json::from_str(r#"{ "count": 2048 }"#).unwrap()), 
-        Err(Error::IllegalConfig("cpu.count".to_string()))
+        CpuConfig::from(Json::from_str(r#"{ "count": 8197 }"#).unwrap()), 
+        Err(Error::IllegalConfig("cpu.count=8197".to_string()))
     );
 }
 
@@ -247,7 +297,8 @@ fn test_vm_config() {
                 r#"{"cpu":{"count":4},"memory":{"size_mib":1024},"#,
                 r#""device":[{"driver":"virtio-blk","source":"/xxx/disk.raw"}],"#,
                 r#""os":{"kernel":"/xx/vmlinuz", "#,
-                r#""cmdline":"console=ttyS0 pci=off"}}"#
+                r#""cmdline":"console=ttyS0 pci=off"},"#,
+                r#""vmm":{"log":{"level":"Info","path":"/var/log/shuairan.log"}}}"#
             )
         ).unwrap()),
         Ok(VmConfig {
@@ -265,7 +316,12 @@ fn test_vm_config() {
                 rootfs: None,
                 cmdline: Some("console=ttyS0 pci=off".to_string())
             },
-            vmm: None
+            vmm: Some(VmmConfig {
+                log: Some(LogConfig{
+                    level: Some(LogLevel::Info),
+                    path: Some("/var/log/shuairan.log".to_string())
+                })
+            })
         })
     )
 }

@@ -489,7 +489,16 @@ pub fn test_from_file() {
                     }
             ]
         ),
-        "vmm".to_string() => Json::Object(hashmap![])
+        "vmm".to_string() => Json::Object(
+            hashmap![
+                "log".to_string() => Json::Object(
+                    hashmap![
+                        "level".to_string() => Json::String("Info".to_string()),
+                        "path".to_string() => Json::String("/var/log/shuairan.log".to_string())
+                    ]
+                )
+            ]
+        )
     ]);
     assert_eq!(object, Ok(data));
 }
